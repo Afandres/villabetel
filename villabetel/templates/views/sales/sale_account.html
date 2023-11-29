@@ -1,0 +1,213 @@
+{% extends "adminlte/starter.html" %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+{% block body %}
+    <br>
+    <div class="container">
+        <form id="accountForm" action="{% url 'villabetel:update_account' %}" method="POST">
+            {% csrf_token %}
+            <h1>Cuenta de Venta</h1>
+            <h2>Mesa: {{ table.number }}</h2>
+            <p>Fecha: {{ current_date }}</p>
+            <!-- Agrega esto al principio de tu formulario -->
+            <input type="hidden" name="table_id" value="{{ table.pk }}">
+            <input type="hidden" id="productsListInput" name="products" value="">
+            
+            <!-- Seleccionar mesero -->
+            <label for="waiter">Seleccionar Mesero:</label>
+            <select name="waiter" id="waiter" class="form-control">
+                {% for waiter in waiters %}
+                    <option value="{{ waiter.id }}">{{ waiter.nickname }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            
+            <!-- Formulario para la cuenta -->
+            <!-- Mostrar la lista de productos por categoría -->
+            {% for category, products in products_by_category.items %}
+                <h3>{{ category.name }}</h3>
+                <ul class="list-group">
+                    {% for product in products %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <input type="checkbox" name="products[]" value="{{ product.id }}">
+                                {{ product.name }} - ${{ product.price }}
+                            </div>
+                            <button type="button" class="btn btn-primary btun" onclick="addProductToList('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.price }}')">Agregar</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+            
+            <!-- Información de la cuenta -->
+            <h3>Detalle de la Cuenta</h3>
+            <ul id="selected-products-list">
+                <!-- Aquí se agregarán dinámicamente los productos seleccionados -->
+            </ul>
+            
+            <!-- Total de la cuenta -->
+            <p>Total: $<span id="total">0</span></p>
+            
+            <!-- Botón para enviar la orden -->
+            <button type="button" class="btn btn-warning" onclick="submitOrder()">Enviar Orden</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-pzjw8Y+3LLlv8Zv0Uw5Yp+jt5f5jZ2ImAWK1cYmMgFbSmYpGXE+pZde2tO5QupbI" crossorigin="anonymous"></script>
+
+    <script>
+        var selectedProducts = {}; // Objeto para rastrear los productos seleccionados
+        var mesa = obtenerNumeroDeMesa();
+        
+        // Cargar la información de la cuenta al ingresar a la página
+        loadAccount();
+
+        function obtenerNumeroDeMesa() {
+            var numeroMesaElement = document.getElementById('numero-mesa');
+            
+            if (numeroMesaElement && numeroMesaElement.hasAttribute('data-mesa')) {
+                return parseInt(numeroMesaElement.getAttribute('data-mesa'), 10);
+            } else {
+                console.error('No se pudo obtener el número de mesa.');
+                return null;
+            }
+        }
+        
+        function loadAccount() {
+            $.ajax({
+                url: '/api/get_account/' + mesa + '/',
+                type: 'GET',
+                success: function(response) {
+                    if (response && response.products.length > 0) {
+                        clearProductList();
+                        
+                        response.products.forEach(function(product) {
+                            for (var i = 0; i < product.quantity; i++) {
+                                addProductToList(product.id, product.name, product.price);
+                            }
+                        });
+                        
+                        $('#waiter').val(response.waiter_id);
+                        $('#total').text(response.total);
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+        
+        function clearProductList() {
+            var productList = document.getElementById("selected-products-list");
+            productList.innerHTML = '';
+            selectedProducts = {};
+        }
+
+        function addProductToList(productId, productName, productPrice) {
+            var productList = document.getElementById("selected-products-list");
+            var totalElement = document.getElementById("total");
+            var total = parseFloat(totalElement.innerText) || 0;
+        
+            // Obtener la cantidad del producto
+            var quantity = parseInt(prompt(`Ingrese la cantidad para ${productName}`, 1), 10);
+        
+            // Verificar si la cantidad es válida
+            if (isNaN(quantity) || quantity <= 0) {
+                alert('La cantidad ingresada no es válida. Selecciona nuevamente.');
+                return;
+            }
+        
+            // Verificar si el producto ya está en la lista
+            if (selectedProducts[productId]) {
+                // Incrementar la cantidad
+                selectedProducts[productId].quantity += quantity;
+                // Actualizar el elemento en la lista
+                selectedProducts[productId].element.querySelector('span').innerText = `${productName} - $${productPrice} x${selectedProducts[productId].quantity}`;
+            } else {
+                // Agregar un nuevo elemento a la lista
+                var listItem = document.createElement("li");
+                listItem.className = "list-group-item d-flex justify-content-between align-items-center";
+                listItem.innerHTML = `
+                    <span>${productName} - $${productPrice} x${quantity}</span>
+                    <button type="button" class="btn btn-danger" onclick="removeProductFromList('${productId}')">Eliminar</button>
+                `;
+                productList.appendChild(listItem);
+        
+                // Almacenar el producto en el objeto de productos seleccionados
+                selectedProducts[productId] = {
+                    quantity: quantity,
+                    price: parseFloat(productPrice),
+                    element: listItem,
+                    productName: productName,
+                    productPrice: parseFloat(productPrice)
+                };
+            }
+        
+            // Actualizar la lista de productos en el formulario antes de enviar
+            updateProductListInForm();
+        
+            total += parseFloat(productPrice) * quantity;
+            totalElement.innerText = total.toFixed(2);
+        }
+        
+        
+        // En la función updateProductListInForm()
+        function updateProductListInForm() {
+            // Actualizar el campo de productos en el formulario
+            var productListInput = document.getElementById("productsListInput");
+            if (productListInput) {
+                // Crear un array de IDs de productos
+                var productIdsArray = Object.keys(selectedProducts);
+                // Asignar la lista de productos al campo del formulario
+                productListInput.value = JSON.stringify(productIdsArray);
+            }
+        }
+        
+
+        function removeProductFromList(productId) {
+            if (selectedProducts[productId]) {
+                var listItem = selectedProducts[productId].element;
+                var totalElement = document.getElementById("total");
+                var total = parseFloat(totalElement.innerText) || 0;
+
+                if (selectedProducts[productId].quantity > 1) {
+                    selectedProducts[productId].quantity--;
+                    listItem.querySelector('span').innerText = `${selectedProducts[productId].quantity} ${selectedProducts[productId].productName} - $${selectedProducts[productId].productPrice}`;
+                } else {
+                    delete selectedProducts[productId];
+                    listItem.remove();
+                }
+
+                total -= selectedProducts[productId].productPrice;
+                totalElement.innerText = isNaN(total) ? '0.00' : total.toFixed(2);
+            }
+        }
+
+        function submitOrder() {
+            // Lógica para enviar la orden al servidor
+            console.log(selectedProducts);
+            // Realizar cualquier otra acción necesaria antes de enviar el formulario
+            document.getElementById('accountForm').submit();
+        }
+    </script>
+
+    <style>
+        .container {
+            margin-left: 30px;
+            max-width: 600px;
+        }
+
+        .card {
+            width: 1000px;
+        }
+
+        #waiter {
+            width: 1000px;
+        }
+
+        .btun {
+            margin-left: 20px;
+        }
+    </style>
+{% endblock %}

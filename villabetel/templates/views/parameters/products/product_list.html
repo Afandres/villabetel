@@ -1,0 +1,210 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+  <div class="container">
+    <h1>Productos</h1>
+    <a class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Crear Producto</a>
+    <br>
+    <br>
+    <table id="example" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Precio</th>
+          <th>Categoría</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product, form in product_forms %}
+          <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.description }}</td>
+            <td>${{ product.price }}</td>
+            <td>{{ product.category.name }}</td>
+            <td>
+              <a href="{% url 'villabetel:productdetail' product.pk %}" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detail{{ product.pk }}">Ver</a>
+              <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ product.pk }}">Editar</button>
+              <!-- Modal de Edición -->
+              <div class="modal fade" id="editModal{{ product.pk }}" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="editModalLabel">Editar Producto</h5>
+                      <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <h1>Editar Producto</h1>
+                      <form method="post" class="custom-form" action="{% url 'villabetel:productupdate' product.pk %}">
+                        {% csrf_token %}
+                        <label for="" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" value="{{ product.name }}" name="name" aria-describedby="helpId" placeholder="Nombre">
+                        <br>
+                        
+                        <label for="" class="form-label">Descripcion</label>
+                        <input type="" class="form-control" value="{{ product.description }}" name="description" aria-describedby="helpId" placeholder="Descripcion">
+                        <br>
+                        
+                        <label for="" class="form-label">Precio</label>
+                        <input type="number" class="form-control" value="{{ product.price }}" name="price" aria-describedby="helpId" placeholder="Precio">
+                        <br>
+                        
+                        <label for="" class="form-label">Categoría</label>
+                        <select name="category" class="form-control">
+                            <option value="{{ product.category.name }}" selected>{{ product.category.name }}</option>
+                            {% for category in categories %}
+                                {% if category.pk != product.category.pk %}  {# Evita agregar la categoría actual nuevamente #}
+                                    <option value="{{ category.name }}">{{ category.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <br>
+
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ product.pk }}">Eliminar</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+<!-- Modal de Creación de Producto -->
+<div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createModalLabel">Crear Producto</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <h1>Crear Producto</h1>
+        <form method="post" class="custom-form" action="{% url 'villabetel:productcreate' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="{{ forms.name.id_for_label }}" class="form-label">{{ forms.name.label_tag }}</label>
+            <input type="{{ forms.name.field.widget.input_type }}" class="form-control" id="{{ forms.name.id_for_label }}" name="{{ forms.name.name }}" value="{{ forms.name.value|default:'' }}" {% if forms.name.field.required %}required{% endif %}>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ forms.description.id_for_label }}" class="form-label">{{ forms.description.label_tag }}</label>
+            <input type="{{ forms.description.field.widget.input_type }}" class="form-control" id="{{ forms.description.id_for_label }}" name="{{ forms.description.name }}" value="{{ forms.description.value|default:'' }}" {% if forms.description.field.required %}required{% endif %}>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ forms.price.id_for_label }}" class="form-label">{{ forms.price.label_tag }}</label>
+            <input type="{{ forms.price.field.widget.input_type }}" class="form-control" id="{{ forms.price.id_for_label }}" name="{{ forms.price.name }}" value="{{ forms.price.value|default:'' }}" {% if forms.price.field.required %}required{% endif %}>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ forms.category.id_for_label }}" class="form-label">{{ forms.category.label_tag }}</label>
+            <select class="form-control" id="{{ forms.category.id_for_label }}" name="{{ forms.category.name }}" {% if forms.category.field.required %}required{% endif %}>
+              <option value="">Selecciona una categoría</option>
+              {% for choice in forms.category.field.choices %}
+                <option value="{{ choice.0 }}" {% if choice.0 == forms.category.value %}selected{% endif %}> {{ choice.1 }} </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal de Detalles -->
+{% for product, form in product_forms %}
+<div class="modal fade" id="detail{{ product.pk }}" tabindex="-1" role="dialog" aria-labelledby="detailLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailLabel">Detalles del Producto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" class="custom-form">
+          {% csrf_token %}
+          <h2>{{ product.name }}</h2>
+          <p>Descripción: {{ product.description }}</p>
+          <p>Precio: {{ product.price }}</p>
+          <p>Categoría: {{ product.category }}</p>
+        </form>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+
+
+
+<!-- Modal de Confirmación de Eliminación -->
+{% for product, form in product_forms %}
+<div class="modal fade" id="confirmDelete{{ product.pk }}" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteLabel">Confirmar Eliminación</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>¿Seguro que deseas eliminar el producto "{{ product.name }}"?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form action="{% url 'villabetel:productdelete' product.pk %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+  <script>
+    $(document).ready(function() {
+        $('#example').DataTable( {
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'copy',
+                    className: 'btn btn-custom btn-primary-custom'
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn btn-custom btn-secondary-custom'
+                },
+                {
+                    extend: 'excel',
+                    className: 'btn btn-custom btn-tertiary-custom'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn btn-custom btn-danger-custom'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn btn-custom btn-warning-custom'
+                }
+            ]
+        } );
+    } );
+    </script>
+    
+{% endblock %}

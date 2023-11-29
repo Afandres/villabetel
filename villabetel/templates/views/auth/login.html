@@ -1,0 +1,20 @@
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+<div class="container" style="margin-top: 30px">
+    <div class="card">
+        <div class="card-body">
+            <form class="text-center" method="post" action="{% url 'villabetel:login' %}">
+                {% csrf_token %}
+                {% for field in loginForms %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <br>
+                <button type="submit" class="btn btn-primary btn-block mb-4">Ingresar</button>
+            </form>
+            <a href="{% url 'villabetel:signupview' %}">¿No tienes una cuenta entra aqui?</a>
+        </div>
+    </div>
+</div>

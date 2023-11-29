@@ -1,0 +1,101 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+<h1>Crear Mesero</h1>
+<div class="container">
+    <form method="post" class="custom-form" action="{% url 'villabetel:waitercreate' %}">
+        {% csrf_token %}
+        <input type="hidden" name="user_profile" id="userProfileId" value="">
+        <div class="form-group">
+        <label for="{{ forms.nickname.id_for_label }}" class="form-label">{{ forms.nickname.label_tag }}</label>
+        <input type="{{ forms.nickname.field.widget.input_type }}" class="form-control" id="{{ forms.nickname.id_for_label }}" name="{{ forms.nickname.name }}" value="{{ forms.nickname.value|default:'' }}" {% if forms.nickname.field.required %}required{% endif %}>
+        </div>
+
+        <div class="form-group">
+            <label for="userProfileSearch" class="form-label">Buscar Usuario por Documento</label>
+            <select id="userProfileSearch" class="form-control custom-select2" style="width: 100%;">
+            </select>
+        </div>
+        
+        
+        </div>
+        
+        <!-- Otros campos relacionados a UserProfile si es necesario -->
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+</div>
+<style>
+    /* Estilos personalizados para Select2 */
+    .custom-select2 {
+        width: 100%; /* Ancho completo del contenedor */
+        border: 2px solid #ccc; /* Borde personalizado */
+        border-radius: 5px; /* Bordes redondeados */
+        padding: 8px; /* Espacio interno */
+        font-size: 16px; /* Tamaño de fuente personalizado */
+    }
+
+    /* Cambiar el color del texto seleccionado */
+    .custom-select2 .select2-selection__rendered {
+        color: #333;
+    }
+
+    /* Cambiar el color del ícono de desplegar */
+    .custom-select2 .select2-selection__arrow {
+        color: #333;
+    }
+
+    /* Estilizar los resultados desplegados */
+    .custom-select2 .select2-results__option {
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    /* Estilizar el elemento seleccionado */
+    .custom-select2 .select2-selection__choice {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+</style>
+<script>
+    $(document).ready(function() {
+        // Limpia la caché de Select2 al cargar la página
+        $('#userProfileSearch').val(null).trigger('change');
+    
+        // Inicializa Select2 para el campo de búsqueda de UserProfile
+        $('#userProfileSearch').select2({
+            ajax: {
+                url: '{% url "villabetel:search_user_profile" %}',
+                dataType: 'json',
+                method: 'GET',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search_term: params.term // Pasar el término de búsqueda al servidor
+                    };
+                },
+                processResults: function(data) {
+                    if (data && Array.isArray(data)) {
+                        return {
+                            results: data.map(function(item) {
+                                return { id: item.id, text: item.text };
+                            })
+                        };
+                    }
+                    return { results: [] };
+                },
+                cache: false
+            }
+        });
+    
+        // Escucha el evento de selección en Select2
+        $('#userProfileSearch').on('select2:select', function(e) {
+            var data = e.params.data;
+            $('#userProfileId').val(data.id);
+        });
+    });
+    
+</script>
+
+{% endblock %}

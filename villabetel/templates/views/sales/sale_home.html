@@ -1,0 +1,103 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+<div class="container">
+    <h1>Áreas y Mesas</h1>
+    <div class="row">
+        <div class="col-md-3">
+            <h2>Seleccionar Área</h2>
+            <br>
+            <div class="list-group">
+                {% for area in areas %}
+                <a href="#area_{{ area.id }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-home"></i> {{ area.name }}
+                </a>
+                <br>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-1 vertical-line-col">
+            <div class="vertical-line"></div> <!-- Línea vertical -->
+        </div>
+        <div class="col-md-8">
+            <div class="area-details">
+                {% for area in areas %}
+                <div id="area_{{ area.id }}" class="area-card" style="display: none;">
+                    <h2>{{ area.name }}</h2>
+                    <br>
+                    <div class="table-list">
+                        <div class="table-row"> <!-- Contenedor para mesas -->
+                            {% for table in area.table_set.all %}
+                            <a href="{% url 'villabetel:sale_account' table.id %}">
+                                <div class="table-card draggable" id="table-{{ table.id }}" style="width: 60px; height: 60px;">
+                                    <div class="table-icon">
+                                        <div class="table-number">{{ table.number }}</div>
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-icon {
+        width: 50px;
+        height: 50px;
+        background-color: #ffffff;
+        border: 1px solid #000;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 10px;
+    }
+
+    .table-number {
+        font-size: 18px;
+    }
+
+    .vertical-line-col {
+        min-height: 100%;
+    }
+
+    .vertical-line {
+        border-left: 1px solid #000;
+        height: 100%;
+    }
+
+    .draggable {
+        cursor: move;
+    }
+
+    .table-row {
+        display: flex; /* Mostrar mesas horizontalmente */
+        flex-wrap: wrap; /* Permitir que las mesas se envuelvan cuando no quepan en el ancho */
+        margin: -5px; /* Espaciado negativo para compensar el margen de las mesas */
+    }
+
+    .table-card {
+        width: 60px;
+        height: 60px;
+        margin: 5px; /* Espaciado entre mesas */
+    }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.list-group-item').on('click', function() {
+            var areaId = $(this).attr('href');
+            $('.area-card').hide();
+            $(areaId).show();
+        });
+
+        $('.draggable').draggable(); // Hace que los elementos con la clase 'draggable' sean arrastrables
+    });
+</script>
+{% endblock %}

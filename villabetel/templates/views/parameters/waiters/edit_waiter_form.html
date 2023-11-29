@@ -1,0 +1,68 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+<h1>Editar Mesero</h1>
+<div class="container">
+    {% for waiter, form in waiter_forms %}
+    <form method="post" class="custom-form" action="{% url 'villabetel:waiterupdate' waiter.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="user_profile" id="userProfileId" value="">
+    <div class="form-group">
+        <label for="" class="form-label">Nickname</label>
+        <input type="text" class="form-control" value="{{ waiter.nickname }}" name="nickname" aria-describedby="helpId" placeholder="Nickname">
+    </div>
+    <br>
+    <div class="form-group">
+        <label for="userProfileSearch" class="form-label">Buscar Usuario por Documento</label>
+        <select id="userProfileSearch" class="form-control custom-select2" style="width: 100%;">
+        </select>
+    </div>
+
+    <!-- Otros campos relacionados a UserProfile si es necesario -->
+
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+    {% endfor %}
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Limpia la caché de Select2 al cargar la página
+        $('#userProfileSearch').val(null).trigger('change');
+    
+        // Inicializa Select2 para el campo de búsqueda de UserProfile
+        $('#userProfileSearch').select2({
+            ajax: {
+                url: '{% url "villabetel:search_user_profile" %}',
+                dataType: 'json',
+                method: 'GET',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search_term: params.term // Pasar el término de búsqueda al servidor
+                    };
+                },
+                processResults: function(data) {
+                    if (data && Array.isArray(data)) {
+                        return {
+                            results: data.map(function(item) {
+                                return { id: item.id, text: item.text };
+                            })
+                        };
+                    }
+                    return { results: [] };
+                },
+                cache: false
+            }
+        });
+    
+        // Escucha el evento de selección en Select2
+        $('#userProfileSearch').on('select2:select', function(e) {
+            var data = e.params.data;
+            $('#userProfileId').val(data.id);
+        });
+    });
+    
+</script>
+
+{% endblock %}

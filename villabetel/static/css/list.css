@@ -1,0 +1,39 @@
+/* En tu archivo CSS personalizado */
+.btn-custom {
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-primary-custom {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.btn-secondary-custom {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.btn-tertiary-custom {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.btn-danger-custom {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.btn-warning-custom {
+    background-color: #ffc107;
+    color: #000;
+}
+

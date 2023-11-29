@@ -1,0 +1,161 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+  <div class="container">
+    <h1>Zonas</h1>
+    <a class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Crear Zona</a>
+    <br>
+    <br>
+    <table id="example" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for area, form in product_forms %}
+          <tr>
+            <td>{{ area.name }}</td>
+            <td>
+              <a href="{% url 'villabetel:areadetail' area.pk %}" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detail{{ area.pk }}">Ver</a>
+              <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ area.pk }}">Editar</button>
+              <!-- Modal de Edición -->
+              <div class="modal fade" id="editModal{{ area.pk }}" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="editModalLabel">Editar Zona</h5>
+                      <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <h1>Editar Zona</h1>
+                      <form method="post" class="custom-form" action="{% url 'villabetel:areaupdate' area.pk %}">
+                        {% csrf_token %}
+                        <label for="" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" value="{{ area.name }}" name="name" aria-describedby="helpId" placeholder="Nombre">
+                        <br>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ area.pk }}">Eliminar</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+<!-- Modal de Creación de Producto -->
+<div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createModalLabel">Crear Zona</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <h1>Crear Area</h1>
+        <form method="post" class="custom-form" action="{% url 'villabetel:areacreate' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="{{ forms.name.id_for_label }}" class="form-label">{{ forms.name.label_tag }}</label>
+            <input type="{{ forms.name.field.widget.input_type }}" class="form-control" id="{{ forms.name.id_for_label }}" name="{{ forms.name.name }}" value="{{ forms.name.value|default:'' }}" {% if forms.name.field.required %}required{% endif %}>
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal de Detalles -->
+{% for area, form in product_forms %}
+<div class="modal fade" id="detail{{ area.pk }}" tabindex="-1" role="dialog" aria-labelledby="detailLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailLabel">Detalles del Zona</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" class="custom-form">
+          {% csrf_token %}
+          <h2>{{ area.name }}</h2>
+        </form>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+
+
+
+<!-- Modal de Confirmación de Eliminación -->
+{% for area, form in product_forms %}
+<div class="modal fade" id="confirmDelete{{ area.pk }}" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteLabel">Confirmar Eliminación</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>¿Seguro que deseas eliminar la zona "{{ area.name }}"?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form action="{% url 'villabetel:areadelete' area.pk %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+  <script>
+    $(document).ready(function() {
+        $('#example').DataTable( {
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'copy',
+                    className: 'btn btn-custom btn-primary-custom'
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn btn-custom btn-secondary-custom'
+                },
+                {
+                    extend: 'excel',
+                    className: 'btn btn-custom btn-tertiary-custom'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn btn-custom btn-danger-custom'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn btn-custom btn-warning-custom'
+                }
+            ]
+        } );
+    } );
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "adminlte/starter.html" %}
+
+{% block body %}
+  <div class="container">
+    <h1>Meseros</h1>
+    <a class="btn btn-primary" href="{% url 'villabetel:load_create_form' %}">Crear Mesero</a>
+    <br>
+    <br>
+    <table id="example" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Nickname</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for waiter, form in waiter_forms %}
+          <tr>
+            <td>{{ waiter.user_profile.first_name }} {{ waiter.user_profile.last_name }}</td>
+            <td>{{ waiter.nickname }}</td>
+            <td>
+              <a href="{% url 'villabetel:waiterdetail' waiter.pk %}" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detail{{ waiter.pk }}">Ver</a>
+              <a class="btn btn-warning" href="{% url 'villabetel:waiterupdate' waiter.pk %}">Editar</a>
+              <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDelete{{ waiter.pk }}">Eliminar</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+
+<!-- Modal de Detalles -->
+{% for waiter, form in waiter_forms %}
+<div class="modal fade" id="detail{{ waiter.pk }}" tabindex="-1" role="dialog" aria-labelledby="detailLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailLabel">Detalles del Mesero</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" class="custom-form">
+          {% csrf_token %}
+          <h2>{{ waiter.name }}</h2>
+          <p>Persona :{{ waiter.user_profile.first_name }} {{ waiter.user_profile.last_name }}</p>
+        </form>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Modal de Confirmación de Eliminación -->
+{% for waiter, form in waiter_forms %}
+<div class="modal fade" id="confirmDelete{{ waiter.pk }}" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteLabel">Confirmar Eliminación</h5>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>¿Seguro que deseas eliminar el mesero "{{ waiter.nickname }}"?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form action="{% url 'villabetel:waiterdelete' waiter.pk %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+  <script>
+    $(document).ready(function() {
+        $('#example').DataTable( {
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'copy',
+                    className: 'btn btn-custom btn-primary-custom'
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn btn-custom btn-secondary-custom'
+                },
+                {
+                    extend: 'excel',
+                    className: 'btn btn-custom btn-tertiary-custom'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn btn-custom btn-danger-custom'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn btn-custom btn-warning-custom'
+                }
+            ]
+        } );
+
+        
+      });
+    </script>
+    
+
+  <!-- Código JavaScript para la tabla (DataTables) si es necesario -->
+{% endblock %}
+
