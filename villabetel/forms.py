@@ -4,6 +4,7 @@ from .models import Product, Table, Area, Category, Waiter, Account
 
 class UserLoginForm(forms.Form):
     email = forms.EmailField(
+        label='Email',
         widget=forms.TextInput(
             attrs={
                 'id': 'loginEmail',
@@ -14,6 +15,7 @@ class UserLoginForm(forms.Form):
     )
 
     password = forms.CharField(
+        label='Contraseña',
         widget=forms.PasswordInput(attrs={
             'id': 'loginPassword',
             'type': 'password',
@@ -24,6 +26,7 @@ class UserLoginForm(forms.Form):
 
 class UserSignUpForm(forms.Form):
     email = forms.EmailField(
+        label='Email',
         widget=forms.TextInput(
             attrs={
                 'id': 'signupEmail',
@@ -35,6 +38,7 @@ class UserSignUpForm(forms.Form):
 
     first_name = forms.CharField(
         max_length=100,
+        label='Nombre',
         widget=forms.TextInput(
             attrs={
                 'type': 'text',
@@ -43,6 +47,7 @@ class UserSignUpForm(forms.Form):
         ))
     
     document_number = forms.CharField(
+        label='Documento',
         widget=forms.TextInput(
             attrs={
                 'type': 'number',
@@ -52,6 +57,7 @@ class UserSignUpForm(forms.Form):
 
     last_name = forms.CharField(
         max_length=100,
+        label='Apellido',
         widget=forms.TextInput(
             attrs={
                 'type': 'text',
@@ -59,6 +65,7 @@ class UserSignUpForm(forms.Form):
             }
         ))
     password = forms.CharField(
+        label='Contraseña',
         widget=forms.PasswordInput(
             attrs={
                 'id': 'signupPassword',
@@ -68,6 +75,7 @@ class UserSignUpForm(forms.Form):
         ))
 
     password2 = forms.CharField(
+        label='Confirmacion Contraseña',
         widget=forms.PasswordInput(
             attrs={
                 'type': 'password',

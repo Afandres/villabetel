@@ -46,9 +46,9 @@ class CustomAccountManager(BaseUserManager):
 
 class UserProfile(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    document_number = models.CharField(max_length=20, blank=True, null=True)
+    first_name = models.CharField(max_length=100,verbose_name='Nombre')
+    last_name = models.CharField(max_length=100,verbose_name='Apellido')
+    document_number = models.CharField(max_length=20, blank=True, null=True,verbose_name='Documento')
     profile_pic = models.ImageField(
         upload_to='users/', default='users/default.png')
     followers = models.ManyToManyField(

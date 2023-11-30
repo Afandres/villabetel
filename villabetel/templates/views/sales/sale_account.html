@@ -12,6 +12,7 @@
             <!-- Agrega esto al principio de tu formulario -->
             <input type="hidden" name="table_id" value="{{ table.pk }}">
             <input type="hidden" id="productsListInput" name="products" value="">
+            <input type="hidden" id="tableNumberInput" data-table="{{ table.number }}">
             <!-- Agrega esto al principio de tu plantilla -->
             <div id="numero-mesa" data-mesa="{{ table.pk }}"></div>
 
@@ -54,17 +55,20 @@
             
             <!-- Botón para enviar la orden -->
             <button type="button" class="btn btn-warning" onclick="submitOrder()">Enviar Orden</button>
+            <button type="button" class="btn btn-success" onclick="generatePDF()">Generar PDF</button>
         </form>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-pzjw8Y+3LLlv8Zv0Uw5Yp+jt5f5jZ2ImAWK1cYmMgFbSmYpGXE+pZde2tO5QupbI" crossorigin="anonymous"></script>
-
-    <script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js"></script>
+    <script>   
         var selectedProducts = {}; // Objeto para rastrear los productos seleccionados
-        var mesa = obtenerNumeroDeMesa();
-        
-        // Cargar la información de la cuenta al ingresar a la página
+        var mesa = obtenerNumeroDeMesa(); // Variable para almacenar el número de mesa
+        var total; // Variable para almacenar el total
+        var current_date; // Variable para almacenar la fecha
+        var table; // Variable para almacenar la información de la mesa
+            // Cargar la información de la cuenta al ingresar a la página
         loadAccount();
 
         function obtenerNumeroDeMesa() {
@@ -76,6 +80,87 @@
                 console.error('No se pudo obtener el número de mesa.');
                 return null;
             }
+        }
+
+        function generatePDF() {
+            if (typeof jsPDF !== 'undefined') {
+                var doc = new jsPDF();
+                var numeroMesaElement = document.getElementById('tableNumberInput');
+                
+                // Agregar contenido al PDF
+                doc.setFont('helvetica');
+                doc.setFontSize(18);
+                doc.text('Hotel Campestre Villa Betel', 20, 10);
+                
+                doc.setFontSize(12);
+                doc.text(`Mesa: ${numeroMesaElement.getAttribute('data-table')}`, 20, 20);
+        
+                // Agregar espacio en blanco
+                var yOffset = 20;
+                doc.text('', 10, yOffset);
+        
+                doc.text(`Fecha: ${current_date || getDate()}`, 20, yOffset + 10);
+        
+                // Agregar espacio en blanco
+                yOffset += 10;
+                doc.text('', 20, yOffset);
+        
+                // Agregar productos y detalles
+                doc.setFontSize(14);
+                yOffset += 10; // Ajustar yOffset después del espacio en blanco
+                for (var productId in selectedProducts) {
+                    var product = selectedProducts[productId];
+                    doc.text(`${product.productName}`, 20, yOffset);
+                    doc.text(`   x${product.quantity}`, 120, yOffset);
+                    doc.text(`   $${(product.productPrice * product.quantity).toFixed(2)}`, 150, yOffset);
+                    yOffset += 10;
+                }
+                
+                // Línea separadora
+                doc.line(20, yOffset, 170, yOffset);
+                yOffset += 5;
+                
+                // Agregar total
+                doc.setFontSize(16);
+                var total = parseFloat(document.getElementById("total").innerText) || 0;
+                doc.text(`Total: $${(total || 0).toFixed(2)}`, 20, yOffset + 10);
+                
+                // Información adicional
+                doc.setFontSize(10);
+                doc.text('¡Gracias por su visita!', 20, yOffset + 20);
+                doc.text('Vuelva pronto.', 20, yOffset + 25);
+        
+                // Guardar el PDF
+                doc.save('cuenta_venta.pdf');
+            } else {
+                console.error('La biblioteca jsPDF no está cargada correctamente.');
+            }
+        }
+        
+        
+        
+
+        
+        function getDate() {
+            var now = new Date();
+            var day = now.getDate();
+            var month = now.getMonth() + 1;
+            var year = now.getFullYear();
+            return `${year}-${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day}`;
+        }
+        
+        function calculateTotal() {
+            var totalElement = document.getElementById("total");
+            var totalInput = document.getElementById("totalInput");
+            var total = 0;
+        
+            // Calcular el total sumando el precio de cada producto multiplicado por su cantidad
+            Object.keys(selectedProducts).forEach(function (productId) {
+                total += selectedProducts[productId].price * selectedProducts[productId].quantity;
+            });
+        
+            totalElement.innerText = total.toFixed(2);
+            totalInput.value = total.toFixed(2);
         }
         
         function loadAccount() {
@@ -90,10 +175,15 @@
                             console.log(`Product ID: ${product.product_id}, Quantity: ${product.quantity}`);
                             addProductToList(product.product_id, product.product_name, product.product_price, product.quantity);
                         });
-                        
         
                         $('#waiter').val(response.waiter_id);
                         $('#total').text(response.total);
+        
+                        // Establecer la variable table con la información de la mesa
+                        table = {
+                            number: response.table_number
+                            // Agrega más propiedades según sea necesario
+                        };
                     }
                 },
                 error: function(error) {
@@ -101,6 +191,7 @@
                 }
             });
         }
+        
         
         
         function clearProductList() {
@@ -122,18 +213,24 @@
                 // Actualizar el elemento en la lista
                 selectedProducts[productId].element.querySelector('span').innerText = `${productName} - $${productPrice} x${selectedProducts[productId].quantity}`;
             } else {
+                // Si la cantidad no está definida o no es un número válido, establecerla en 1
+                var parsedQuantity = parseInt(quantity, 10);
+                if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+                    parsedQuantity = 1;
+                }
+        
                 // Agregar un nuevo elemento a la lista
                 var listItem = document.createElement("li");
                 listItem.className = "list-group-item d-flex justify-content-between align-items-center";
                 listItem.innerHTML = `
-                    <span>${productName} - $${productPrice} x${quantity}</span>
+                    <span>${productName} - $${productPrice} x${parsedQuantity}</span>
                     <button type="button" class="btn btn-danger" onclick="removeProductFromList('${productId}')">Eliminar</button>
                 `;
                 productList.appendChild(listItem);
         
                 // Almacenar el producto en el objeto de productos seleccionados
                 selectedProducts[productId] = {
-                    quantity: parseInt(quantity, 10),  // Parsear la cantidad desde la respuesta de la API
+                    quantity: parsedQuantity,
                     price: parseFloat(productPrice),
                     element: listItem,
                     productName: productName,
@@ -154,6 +251,10 @@
             totalElement.innerText = total.toFixed(2);
             totalInput.value = total.toFixed(2);
         }
+        
+        
+        
+        
         
         
         
