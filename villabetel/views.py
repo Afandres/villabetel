@@ -10,6 +10,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
 import json
 from django.db import transaction
+from decimal import Decimal
+from django.db.models import F
 
 from .forms import UserLoginForm, UserSignUpForm,ProductForm, ProductFormEdit, AreaForm, TableForm, TableFormEdit, AreaFormEdit, CategoryForm, CategoryFormEdit, WaiterForm, WaiterFormEdit
 from .models import Product, Category, Area, Table, Category, Waiter, UserProfile, Invoice, Account, ProductQuantity
@@ -389,66 +391,108 @@ def sale_account(request, table_id):
         'current_date': current_date,
     })
     
-def get_account(request, table_number):
-    account = get_object_or_404(Account, table__number=table_number, state='Pendiente')
+def get_account_json(request, mesa_id):
+    try:
+        # Obtener la cuenta pendiente para la mesa específica
+        account = Account.objects.filter(table__id=mesa_id, state='Pendiente').first()
 
-    account_info = {
-        'waiter_id': account.waiter.pk,
-        'total': account.price,  # Asegúrate de tener un campo de total en tu modelo de cuenta
-        'products': [
-            {
-                'id': product.pk,
-                'name': product.name,
-                'price': product.price,
-                'quantity': account.ammount,  # Corregí ammount a amount según tu modelo
+        if account:
+            # Obtener los productos y cantidades asociados a la cuenta
+            products_and_quantities = ProductQuantity.objects.filter(account=account)
+            print(products_and_quantities)
+            # Construir la respuesta JSON
+            response_data = {
+                'waiter_id': account.waiter.pk,
+                'products': [
+                    {
+                        'product_id': pq.product.pk,
+                        'product_name': pq.product.name,
+                        'product_price': pq.product.price,
+                        'quantity': pq.quantity,
+                    }
+                    for pq in products_and_quantities
+                ],
+                'total': account.price,
+                'account_state': account.state,
             }
-            for product in account.products.all()
-        ],
-        # Otros campos que puedas necesitar...
-    }
 
-    return JsonResponse(account_info)
+            return JsonResponse(response_data)
+        else:
+            return JsonResponse({'error': 'No se encontró una cuenta pendiente para esta mesa.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
+    
 def update_account(request):
     try:
         mesa_id = request.POST.get('table_id')
         waiter_id = request.POST.get('waiter')
         products_json = request.POST.get('products')
+        inputtotal = request.POST.get('total')
+        print("Products JSON:", products_json) 
         products_list = json.loads(products_json) if products_json else []
+        print("Products List:", products_list)
 
         with transaction.atomic():
             account = Account.objects.filter(table__id=mesa_id, state='Pendiente').first()
+            print(account)
 
             if account:
+                print('paso1')
                 account.waiter = get_object_or_404(Waiter, pk=waiter_id)
-                account.products.all().delete()  # Eliminar productos existentes
+                total = Decimal('0.00')  # Inicializar el total como un Decimal
 
-                for product_id in products_list:
+                for product_data in products_list:
+                    product_id = product_data['id']
+                    quantity = product_data['quantity']
                     product = get_object_or_404(Product, pk=product_id)
-                    quantity = products_list.count(str(product_id))  # Contar la cantidad del mismo producto
-                    ProductQuantity.objects.create(account=account, product=product, quantity=quantity)
 
-                account.calculate_total_price()
+                    # Intentar obtener el objeto ProductQuantity existente
+                    product_quantity, created = ProductQuantity.objects.get_or_create(
+                        account=account,
+                        product=product,
+                        defaults={'quantity': quantity}
+                    )
+
+                    # Si ya existe, actualiza la cantidad y el total, de lo contrario, crea un nuevo registro
+                    if not created:
+                        product_quantity.quantity = quantity
+                        product_quantity.save()
+
+                    
+
+                # Actualizar el total de la cuenta
+                print(inputtotal)
+                account.price = inputtotal
                 account.save()
             else:
+                print('paso2')
                 table = get_object_or_404(Table, pk=mesa_id)
                 waiter = get_object_or_404(Waiter, pk=waiter_id)
+                total = Decimal('0.00')  # Inicializar el total como un Decimal
 
                 new_account = Account.objects.create(
                     table=table,
                     waiter=waiter,
                     state='Pendiente',
+                    price=total  # Asegúrate de asignar el total al campo price
                 )
 
-                for product_id in products_list:
+                for product_data in products_list:
+                    product_id = product_data['id']
+                    quantity = product_data['quantity']
                     product = get_object_or_404(Product, pk=product_id)
-                    quantity = products_list.count(str(product_id))  # Contar la cantidad del mismo producto
                     ProductQuantity.objects.create(account=new_account, product=product, quantity=quantity)
 
-                new_account.calculate_total_price()
+                    
+
+                # Actualizar el total de la cuenta
+                new_account.price = inputtotal
                 new_account.save()
 
-        return JsonResponse({'success': True})
+        return redirect('villabetel:sale_home')  # Redirigir a la lista de meseros
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 

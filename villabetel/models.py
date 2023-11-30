@@ -127,20 +127,13 @@ class Account(models.Model):
     table = models.ForeignKey(Table, on_delete=models.CASCADE)
     waiter = models.ForeignKey(Waiter, on_delete=models.CASCADE)
     ammount = models.PositiveIntegerField(null=True, blank=True)
-    price = models.IntegerField(null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     state = models.CharField(max_length=20)
     timestamp = models.DateTimeField(auto_now_add=True)
-    # Agrega la línea a continuación nuevamente
-    products = models.ManyToManyField(Product, through='ProductQuantity')
-
-    def calculate_total_price(self):
-        total_price = sum(product.product.price * product.quantity for product in self.products.all())
-        self.price = total_price
-        self.save()
 
 
 class ProductQuantity(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='product_quantities')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
 

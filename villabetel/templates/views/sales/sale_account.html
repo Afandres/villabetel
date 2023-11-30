@@ -12,6 +12,9 @@
             <!-- Agrega esto al principio de tu formulario -->
             <input type="hidden" name="table_id" value="{{ table.pk }}">
             <input type="hidden" id="productsListInput" name="products" value="">
+            <!-- Agrega esto al principio de tu plantilla -->
+            <div id="numero-mesa" data-mesa="{{ table.pk }}"></div>
+
             
             <!-- Seleccionar mesero -->
             <label for="waiter">Seleccionar Mesero:</label>
@@ -46,6 +49,7 @@
             </ul>
             
             <!-- Total de la cuenta -->
+            <input type="hidden" id="totalInput" name="total" value="0">
             <p>Total: $<span id="total">0</span></p>
             
             <!-- Botón para enviar la orden -->
@@ -79,15 +83,15 @@
                 url: '/api/get_account/' + mesa + '/',
                 type: 'GET',
                 success: function(response) {
-                    if (response && response.products.length > 0) {
+                    if (response && response.products.length > 0 && response.account_state === 'Pendiente') {
                         clearProductList();
-                        
+        
                         response.products.forEach(function(product) {
-                            for (var i = 0; i < product.quantity; i++) {
-                                addProductToList(product.id, product.name, product.price);
-                            }
+                            console.log(`Product ID: ${product.product_id}, Quantity: ${product.quantity}`);
+                            addProductToList(product.product_id, product.product_name, product.product_price, product.quantity);
                         });
                         
+        
                         $('#waiter').val(response.waiter_id);
                         $('#total').text(response.total);
                     }
@@ -98,30 +102,23 @@
             });
         }
         
+        
         function clearProductList() {
             var productList = document.getElementById("selected-products-list");
             productList.innerHTML = '';
             selectedProducts = {};
         }
 
-        function addProductToList(productId, productName, productPrice) {
+        function addProductToList(productId, productName, productPrice, quantity) {
             var productList = document.getElementById("selected-products-list");
             var totalElement = document.getElementById("total");
+            var totalInput = document.getElementById("totalInput");
             var total = parseFloat(totalElement.innerText) || 0;
-        
-            // Obtener la cantidad del producto
-            var quantity = parseInt(prompt(`Ingrese la cantidad para ${productName}`, 1), 10);
-        
-            // Verificar si la cantidad es válida
-            if (isNaN(quantity) || quantity <= 0) {
-                alert('La cantidad ingresada no es válida. Selecciona nuevamente.');
-                return;
-            }
         
             // Verificar si el producto ya está en la lista
             if (selectedProducts[productId]) {
-                // Incrementar la cantidad
-                selectedProducts[productId].quantity += quantity;
+                // Incrementar la cantidad según la cantidad proporcionada en la respuesta
+                selectedProducts[productId].quantity = parseInt(selectedProducts[productId].quantity, 10) + 1;
                 // Actualizar el elemento en la lista
                 selectedProducts[productId].element.querySelector('span').innerText = `${productName} - $${productPrice} x${selectedProducts[productId].quantity}`;
             } else {
@@ -136,31 +133,44 @@
         
                 // Almacenar el producto en el objeto de productos seleccionados
                 selectedProducts[productId] = {
-                    quantity: quantity,
+                    quantity: parseInt(quantity, 10),  // Parsear la cantidad desde la respuesta de la API
                     price: parseFloat(productPrice),
                     element: listItem,
                     productName: productName,
                     productPrice: parseFloat(productPrice)
                 };
             }
+            console.log(`Product ID: ${productId}, Quantity: ${selectedProducts[productId].quantity}`);
         
             // Actualizar la lista de productos en el formulario antes de enviar
             updateProductListInForm();
         
-            total += parseFloat(productPrice) * quantity;
+            total = 0; // reiniciar total
+            // Calcular el total sumando el precio de cada producto multiplicado por su cantidad
+            Object.keys(selectedProducts).forEach(function (productId) {
+                total += selectedProducts[productId].price * selectedProducts[productId].quantity;
+            });
+        
             totalElement.innerText = total.toFixed(2);
+            totalInput.value = total.toFixed(2);
         }
         
         
-        // En la función updateProductListInForm()
+        
+        
         function updateProductListInForm() {
             // Actualizar el campo de productos en el formulario
             var productListInput = document.getElementById("productsListInput");
             if (productListInput) {
-                // Crear un array de IDs de productos
-                var productIdsArray = Object.keys(selectedProducts);
+                // Crear un array de objetos con claves id y quantity
+                var productListArray = Object.keys(selectedProducts).map(function(productId) {
+                    return {
+                        id: productId,
+                        quantity: selectedProducts[productId].quantity
+                    };
+                });
                 // Asignar la lista de productos al campo del formulario
-                productListInput.value = JSON.stringify(productIdsArray);
+                productListInput.value = JSON.stringify(productListArray);
             }
         }
         
@@ -170,19 +180,27 @@
                 var listItem = selectedProducts[productId].element;
                 var totalElement = document.getElementById("total");
                 var total = parseFloat(totalElement.innerText) || 0;
-
+        
                 if (selectedProducts[productId].quantity > 1) {
                     selectedProducts[productId].quantity--;
-                    listItem.querySelector('span').innerText = `${selectedProducts[productId].quantity} ${selectedProducts[productId].productName} - $${selectedProducts[productId].productPrice}`;
+                    listItem.querySelector('span').innerText = `${selectedProducts[productId].productName} - $${selectedProducts[productId].productPrice} x${selectedProducts[productId].quantity}`;
+                    // Restar el precio del producto por unidad
+                    total -= selectedProducts[productId].productPrice;
                 } else {
+                    // Restar el precio total del producto y eliminar el producto de la lista
+                    total -= selectedProducts[productId].productPrice * selectedProducts[productId].quantity;
                     delete selectedProducts[productId];
                     listItem.remove();
                 }
-
-                total -= selectedProducts[productId].productPrice;
+        
                 totalElement.innerText = isNaN(total) ? '0.00' : total.toFixed(2);
             }
         }
+        
+        
+        
+        
+        
 
         function submitOrder() {
             // Lógica para enviar la orden al servidor

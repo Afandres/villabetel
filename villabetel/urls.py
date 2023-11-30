@@ -59,7 +59,7 @@ urlpatterns = [
     # Ventas
     path('sales/home/', views.sale_home, name='sale_home'),
     path('sale_account/<int:table_id>/', views.sale_account, name='sale_account'),
-    path('api/get_account/<int:table_number>/', views.get_account, name='get_account'),
+    path('api/get_account/<int:mesa_id>/', views.get_account_json, name='get_account_json'),
     path('api/update_account/', views.update_account, name='update_account'),
 
 ]
